@@ -3,6 +3,7 @@ CREATE TABLE data (
   compiler TEXT,
   version TEXT,
   compile_time REAL,
+  total_cycles INT,
   dispatch_width INT,
   uops_per_cycle REAL,
   ipc REAL,
@@ -40,7 +41,7 @@ CREATE VIEW by_imm8 AS
     `is`.`ipc` AS ipc_icc_rosbif2,
     `im`.`ipc` AS ipc_icc_mula,
     `ia`.`ipc` AS ipc_icc_autovec,
-      
+
     `cr`.`block_rthroughput` AS rthroughput_clang_rosbif,
     `cs`.`block_rthroughput` AS rthroughput_clang_rosbif2,
     `cm`.`block_rthroughput` AS rthroughput_clang_mula,
@@ -129,7 +130,7 @@ DROP VIEW IF EXISTS rel_rthroughput;
 CREATE VIEW rel_rthroughput AS
   SELECT DISTINCT
     `cr`.`imm8`,
-      
+
     `cr`.`block_rthroughput` - (SELECT MIN(`block_rthroughput`) FROM `data` AS `id` WHERE `id`.`imm8` = `data`.`imm8` GROUP BY `id`.`imm8`) AS rthroughput_clang_rosbif,
     `cs`.`block_rthroughput` - (SELECT MIN(`block_rthroughput`) FROM `data` AS `id` WHERE `id`.`imm8` = `data`.`imm8` GROUP BY `id`.`imm8`) AS rthroughput_clang_rosbif2,
     `cm`.`block_rthroughput` - (SELECT MIN(`block_rthroughput`) FROM `data` AS `id` WHERE `id`.`imm8` = `data`.`imm8` GROUP BY `id`.`imm8`) AS rthroughput_clang_mula,
@@ -225,7 +226,3 @@ CREATE VIEW avg_rthroughput AS
     AVG(block_rthroughput) AS rthroughput
   FROM data
   GROUP BY compiler, version;
-
-
-
-

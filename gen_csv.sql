@@ -1,7 +1,7 @@
 .headers on
 .mode csv
 .output data.csv
-SELECT imm8, compiler, version, compile_time, dispatch_width, uops_per_cycle, ipc, block_rthroughput FROM data;
+SELECT imm8, compiler, version, total_cycles, compile_time, dispatch_width, uops_per_cycle, ipc, block_rthroughput FROM data;
 .output by_imm8.csv
 SELECT * FROM by_imm8;
 .output rel_rthroughput.csv
