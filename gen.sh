@@ -14,13 +14,14 @@ function parse_mca () {
     VERSION="$2"
     IMM8=$3
     COMPILE_TIME="$(cat time.res)"
+    INSTRUCTIONS="$(grep -P '^(Instructions:).+' llvm-mca.txt | cut -b20-)"
     TOTAL_CYCLES="$(grep -P '^(Total Cycles:).+' llvm-mca.txt | cut -b20-)"
     DISPATCH_WIDTH="$(grep -P '^(Dispatch Width:).+' llvm-mca.txt | cut -b20-)"
     UOPS_PER_CYCLE="$(grep -P '^(uOps Per Cycle:).+' llvm-mca.txt | cut -b20-)"
     IPC="$(grep -P '^(IPC:).+' llvm-mca.txt | cut -b20-)"
     BLOCK_RTHROUGHPUT="$(grep -P '^(Block RThroughput:).+' llvm-mca.txt | cut -b20-)"
 
-    echo "INSERT INTO data (imm8, compiler, version, compile_time, total_cycles, dispatch_width, uops_per_cycle, ipc, block_rthroughput, asm) VALUES ($IMM8, '$COMPILER', '$VERSION', $COMPILE_TIME, $TOTAL_CYCLES, $DISPATCH_WIDTH, $UOPS_PER_CYCLE, $IPC, $BLOCK_RTHROUGHPUT, readfile('result.s'));" | sqlite3 data.db
+    echo "INSERT INTO data (imm8, compiler, version, compile_time, instructions, total_cycles, dispatch_width, uops_per_cycle, ipc, block_rthroughput, asm) VALUES ($IMM8, '$COMPILER', '$VERSION', $COMPILE_TIME, $INSTRUCTIONS, $TOTAL_CYCLES, $DISPATCH_WIDTH, $UOPS_PER_CYCLE, $IPC, $BLOCK_RTHROUGHPUT, readfile('result.s'));" | sqlite3 data.db
 }
 
 CLANG=clang-11
@@ -38,49 +39,85 @@ for MARCH in nehalem; do
   while [ $x -lt 256 ]; do
     echo "Generating data for -march=$MARCH #$x..."
 
-    /usr/bin/time -o time.res -f '%U' $CLANG   -DIMM8=$x -march=$MARCH $CFLAGS_CLANG tl-rosbif.c  -S -o result.s
+    /usr/bin/time -o time.res -f '%U' $CLANG   -DIMM8=$x -march=$MARCH $CFLAGS_CLANG -DROSBIF_VERSION=1 tl-rosbif.c  -S -o result.s
     llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
-    parse_mca "$CLANG" "rosbif" $x
+    parse_mca "clang" "rosbif" $x
 
-    /usr/bin/time -o time.res -f '%U' $CLANG   -DIMM8=$x -march=$MARCH $CFLAGS_CLANG tl-rosbif2.c -S -o result.s
+    /usr/bin/time -o time.res -f '%U' $CLANG   -DIMM8=$x -march=$MARCH $CFLAGS_CLANG -DROSBIF_VERSION=2 tl-rosbif.c  -S -o result.s
     llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
-    parse_mca "$CLANG" "rosbif2" $x
+    parse_mca "clang" "rosbif2" $x
+
+    /usr/bin/time -o time.res -f '%U' $CLANG   -DIMM8=$x -march=$MARCH $CFLAGS_CLANG -DROSBIF_VERSION=3 tl-rosbif.c  -S -o result.s
+    llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
+    parse_mca "clang" "rosbif3" $x
+
+    /usr/bin/time -o time.res -f '%U' $CLANG   -DIMM8=$x -march=$MARCH $CFLAGS_CLANG -DROSBIF_VERSION=4 tl-rosbif.c  -S -o result.s
+    llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
+    parse_mca "clang" "rosbif4" $x
+
+    /usr/bin/time -o time.res -f '%U' $CLANG   -DIMM8=$x -march=$MARCH $CFLAGS_CLANG -DROSBIF_VERSION=5 tl-rosbif.c  -S -o result.s
+    llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
+    parse_mca "clang" "rosbif5" $x
 
     /usr/bin/time -o time.res -f '%U' $CLANG   -DIMM8=$x -march=$MARCH $CFLAGS_CLANG tl.c         -S -o result.s
     llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
-    parse_mca "$CLANG" "autovec" $x
+    parse_mca "clang" "autovec" $x
 
     /usr/bin/time -o time.res -f '%U' $CLANGXX -DIMM8=$x -march=$MARCH $CFLAGS_CLANG mula.cpp     -S -o result.s
     llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
-    parse_mca "$CLANGXX" "mula" $x
+    parse_mca "clang" "mula" $x
 
 
 
-    /usr/bin/time -o time.res -f '%U' $GCC     -DIMM8=$x -march=$MARCH $CFLAGS_GCC tl-rosbif.c  -S -o result.s
+    /usr/bin/time -o time.res -f '%U' $GCC     -DIMM8=$x -march=$MARCH $CFLAGS_GCC -DROSBIF_VERSION=1 tl-rosbif.c  -S -o result.s
     llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
-    parse_mca "$GCC" "rosbif" $x
+    parse_mca "gcc" "rosbif" $x
 
-    /usr/bin/time -o time.res -f '%U' $GCC     -DIMM8=$x -march=$MARCH $CFLAGS_GCC tl-rosbif2.c -S -o result.s
+    /usr/bin/time -o time.res -f '%U' $GCC     -DIMM8=$x -march=$MARCH $CFLAGS_GCC -DROSBIF_VERSION=2 tl-rosbif.c  -S -o result.s
     llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
-    parse_mca "$GCC" "rosbif2" $x
+    parse_mca "gcc" "rosbif2" $x
+
+    /usr/bin/time -o time.res -f '%U' $GCC     -DIMM8=$x -march=$MARCH $CFLAGS_GCC -DROSBIF_VERSION=3 tl-rosbif.c  -S -o result.s
+    llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
+    parse_mca "gcc" "rosbif3" $x
+
+    /usr/bin/time -o time.res -f '%U' $GCC     -DIMM8=$x -march=$MARCH $CFLAGS_GCC -DROSBIF_VERSION=4 tl-rosbif.c  -S -o result.s
+    llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
+    parse_mca "gcc" "rosbif4" $x
+
+    /usr/bin/time -o time.res -f '%U' $GCC     -DIMM8=$x -march=$MARCH $CFLAGS_GCC -DROSBIF_VERSION=5 tl-rosbif.c  -S -o result.s
+    llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
+    parse_mca "gcc" "rosbif5" $x
 
     /usr/bin/time -o time.res -f '%U' $GCC     -DIMM8=$x -march=$MARCH $CFLAGS_GCC tl.c         -S -o result.s
     llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
-    parse_mca "$GCC" "autovec" $x
+    parse_mca "gcc" "autovec" $x
 
     /usr/bin/time -o time.res -f '%U' $GXX     -DIMM8=$x -march=$MARCH $CFLAGS_GCC mula.cpp     -S -o result.s
     llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
-    parse_mca "$GXX" "mula" $x
+    parse_mca "gcc" "mula" $x
 
 
 
-    /usr/bin/time -o time.res -f '%U' icc     -DIMM8=$x -march=$MARCH $CFLAGS_ICC tl-rosbif.c  -S -o result.s
+    /usr/bin/time -o time.res -f '%U' icc     -DIMM8=$x -march=$MARCH $CFLAGS_ICC -DROSBIF_VERSION=1 tl-rosbif.c  -S -o result.s
     llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
     parse_mca "icc" "rosbif" $x
 
-    /usr/bin/time -o time.res -f '%U' icc     -DIMM8=$x -march=$MARCH $CFLAGS_ICC tl-rosbif2.c -S -o result.s
+    /usr/bin/time -o time.res -f '%U' icc     -DIMM8=$x -march=$MARCH $CFLAGS_ICC -DROSBIF_VERSION=2 tl-rosbif.c  -S -o result.s
     llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
     parse_mca "icc" "rosbif2" $x
+
+    /usr/bin/time -o time.res -f '%U' icc     -DIMM8=$x -march=$MARCH $CFLAGS_ICC -DROSBIF_VERSION=3 tl-rosbif.c  -S -o result.s
+    llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
+    parse_mca "icc" "rosbif3" $x
+
+    /usr/bin/time -o time.res -f '%U' icc     -DIMM8=$x -march=$MARCH $CFLAGS_ICC -DROSBIF_VERSION=4 tl-rosbif.c  -S -o result.s
+    llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
+    parse_mca "icc" "rosbif4" $x
+
+    /usr/bin/time -o time.res -f '%U' icc     -DIMM8=$x -march=$MARCH $CFLAGS_ICC -DROSBIF_VERSION=5 tl-rosbif.c  -S -o result.s
+    llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
+    parse_mca "icc" "rosbif5" $x
 
     /usr/bin/time -o time.res -f '%U' icc     -DIMM8=$x -march=$MARCH $CFLAGS_ICC tl.c         -S -o result.s
     llvm-mca -mcpu=$MARCH -o "llvm-mca.txt" result.s
